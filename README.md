@@ -1,2 +1,2 @@
 # Mockrena
-Mock Interview Game
+Mock Interview Simulation
