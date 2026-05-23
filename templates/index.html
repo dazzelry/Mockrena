@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockrena</title>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="spinner spin"></div>
+  <div class="loading-text" id="loading-text">INITIALIZING...</div>
+</div>
+
+<!-- COMBO FLASH (injected dynamically) -->
+
+<!-- ============================================================
+     SCREEN 1: SETUP
+============================================================ -->
+<div class="screen active" id="screen-setup">
+  <div class="hud-bar">
+    <div class="logo glitch">INTERVIEW ARENA</div>
+    <div class="hud-stat">
+      <span>SYS: ONLINE</span>
+      <span>AI: <span style="color:var(--lavender)">READY</span></span>
+    </div>
+  </div>
+  <div class="inner">
+    <div class="setup-title">CANDIDATE INTAKE</div>
+    <div class="setup-sub">// PASTE YOUR INTEL. THE ARENA WILL BUILD YOUR TRIAL.</div>
+
+    <div class="fields-grid">
+      <div>
+        <div class="field-label">JOB TITLE</div>
+        <input type="text" id="job-title" placeholder="e.g. Senior Product Manager at Stripe" />
+      </div>
+      <div>
+        <div class="field-label">CANDIDATE NAME</div>
+        <input type="text" id="candidate-name" placeholder="Your name" />
+      </div>
+      <div class="field-full">
+        <div class="field-label">JOB LISTING &amp; REQUIREMENTS</div>
+        <textarea id="job-listing" rows="8" placeholder="Paste the full job description here — responsibilities, requirements, nice-to-haves, company description..."></textarea>
+      </div>
+      <div class="field-full">
+        <div class="field-label">YOUR RESUME</div>
+        <textarea id="resume-text" rows="8" placeholder="Paste your resume text here — experience, skills, education, projects..."></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:16px;align-items:center;">
+      <button class="btn btn-primary" onclick="startSetup()">ENTER THE ARENA →</button>
+      <button class="btn" onclick="loadDemo()">LOAD DEMO DATA</button>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text-dim);" id="setup-error"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 2: LOBBY
+============================================================ -->
+<div class="screen" id="screen-lobby">
+  <div class="hud-bar">
+    <div class="logo">INTERVIEW ARENA</div>
+    <div class="hud-stat" style="gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span>XP</span>
+          <span id="hud-xp">0 / 500</span>
+        </div>
+        <div class="xp-bar-wrap" style="width:120px;">
+          <div class="xp-bar-fill" id="hud-xp-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div>STREAK: <span id="hud-streak">0</span></div>
+      <div>COMBO: <span id="hud-combo">x1</span></div>
+    </div>
+  </div>
+  <div class="inner">
+    <div class="player-card neon-box corner-dec">
+      <div class="avatar" id="lobby-avatar">?</div>
+      <div style="flex:1;">
+        <div class="level-badge" id="lobby-level">LEVEL 1 — INTERN</div>
+        <div class="player-name" id="lobby-name">CANDIDATE</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:4px;" id="lobby-role">Applying for: —</div>
+        <div style="margin-top:12px;display:flex;gap:8px;" id="lobby-badges"></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-family:var(--display);font-size:36px;font-weight:900;color:var(--lavender);" id="lobby-score-display">0</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;">TOTAL SCORE</div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--lavender);letter-spacing:2px;margin-bottom:16px;">// SELECT YOUR TRIAL</div>
+      <div class="round-list" id="round-list"></div>
+    </div>
+
+    <div id="lobby-summary" style="display:none;" class="neon-box" style="padding:20px;">
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 3: INTERVIEW
+============================================================ -->
+<div class="screen" id="screen-interview">
+  <!-- HEADER -->
+  <div class="interview-header">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="logo" style="font-size:12px;">ARENA</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);" id="iv-round-label">ROUND 1</div>
+      <div class="progress-dots" id="iv-progress"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:24px;">
+      <div class="timer-ring">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(0,255,136,0.1)" stroke-width="3"/>
+          <circle cx="30" cy="30" r="26" fill="none" stroke="var(--pink)" stroke-width="3"
+            stroke-dasharray="163" id="timer-arc" stroke-dashoffset="0" stroke-linecap="round"/>
+        </svg>
+        <div class="timer-text" id="timer-text">2:00</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="rec-dot" id="rec-dot" style="display:none;"></div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);" id="rec-label">STANDBY</span>
+      </div>
+      <div style="font-family:var(--display);font-size:16px;font-weight:700;color:var(--pink);" id="iv-combo">x1</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="interview-main">
+    <!-- Question -->
+    <div class="question-box neon-box corner-dec" id="question-box">
+      <div class="q-number" id="q-number">QUESTION 01 OF 05</div>
+      <div class="q-text" id="q-text">Loading question...</div>
+      <div class="q-tip" id="q-tip"></div>
+    </div>
+
+    <!-- Transcript -->
+    <div>
+      <div class="field-label" style="margin-bottom:8px;">LIVE TRANSCRIPT</div>
+      <div class="transcript-box" id="transcript-box">
+        <span style="color:var(--text-dim);font-family:var(--mono);font-size:11px;">Waiting for your response...</span>
+      </div>
+    </div>
+
+    <!-- Speech Stats -->
+    <div class="speech-stats">
+      <div class="stat-cell">
+        <div class="val" id="stat-wpm">—</div>
+        <div class="key">WORDS/MIN</div>
+      </div>
+      <div class="stat-cell">
+        <div class="val" id="stat-words">0</div>
+        <div class="key">WORDS</div>
+      </div>
+      <div class="stat-cell">
+        <div class="val wpm-danger" id="stat-fillers">0</div>
+        <div class="key">FILLER WORDS</div>
+      </div>
+      <div class="stat-cell">
+        <div class="val" id="stat-emotion">—</div>
+        <div class="key">EXPRESSION</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="interview-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">CAMERA FEED</div>
+      <div class="webcam-wrap">
+        <video id="webcam-feed" autoplay muted playsinline></video>
+        <canvas id="face-canvas"></canvas>
+        <div class="webcam-overlay">
+          <span class="emotion-tag badge-green" id="emotion-tag" style="background:rgba(197,180,227,0.15);border:2px solid var(--lavender);color:var(--lavender);font-family:var(--mono);font-size:9px;padding:2px 6px;">SCANNING...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">LIVE METRICS</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="meter-wrap">
+          <div style="display:flex;justify-content:space-between;"><div class="meter-label">CONFIDENCE</div><div class="meter-label" id="m-conf-val">—</div></div>
+          <div class="meter-bar"><div class="meter-fill good" id="m-conf" style="width:0%"></div></div>
+        </div>
+        <div class="meter-wrap">
+          <div style="display:flex;justify-content:space-between;"><div class="meter-label">POSITION</div><div class="meter-label" id="m-eye-val">—</div></div>
+          <div class="meter-bar"><div class="meter-fill good" id="m-eye" style="width:0%"></div></div>
+        </div>
+        <div class="meter-wrap">
+          <div style="display:flex;justify-content:space-between;"><div class="meter-label">PACE</div><div class="meter-label" id="m-pace-val">—</div></div>
+          <div class="meter-bar"><div class="meter-fill warn" id="m-pace" style="width:50%"></div></div>
+        </div>
+        <div class="meter-wrap">
+          <div style="display:flex;justify-content:space-between;"><div class="meter-label">CLARITY</div><div class="meter-label" id="m-clarity-val">—</div></div>
+          <div class="meter-bar"><div class="meter-fill good" id="m-clarity" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">SESSION SCORE</div>
+      <div style="font-family:var(--display);font-size:32px;font-weight:900;color:var(--lavender);text-align:center;" id="iv-score">0</div>
+      <div style="text-align:center;margin-top:4px;" id="iv-stars">
+        <div class="stars">
+          <div class="star dim">★</div>
+          <div class="star dim">★</div>
+          <div class="star dim">★</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" id="feedback-section" style="display:none;">
+      <div class="sidebar-title">LAST FEEDBACK</div>
+      <div style="font-family:var(--body);font-size:13px;color:var(--text-dim);line-height:1.6;" id="feedback-text"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="interview-footer">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);">
+      Press <span style="color:var(--lavender);">START</span> when ready, <span style="color:var(--lavender);">SUBMIT</span> when done.
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button class="btn" id="btn-start-speaking" onclick="startSpeaking()">START ANSWER</button>
+      <button class="btn btn-primary" id="btn-submit" onclick="submitAnswer()" style="display:none;">SUBMIT ANSWER →</button>
+      <button class="btn btn-danger" onclick="endInterview()">END SESSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCREEN 4: RESULTS
+============================================================ -->
+<div class="screen" id="screen-results">
+  <div class="hud-bar">
+    <div class="logo">MOCKRENA</div>
+    <div class="hud-stat">SESSION COMPLETE</div>
+  </div>
+  <div class="inner">
+    <div class="result-header">
+      <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:3px;margin-bottom:8px;">PERFORMANCE REPORT</div>
+      <div class="final-score" id="final-score-display">0</div>
+      <div class="score-label" id="final-grade">CALCULATING...</div>
+      <div class="xp-gained" id="xp-gained-display" style="margin-top:8px;"></div>
+    </div>
+
+    <div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--lavender);letter-spacing:2px;margin-bottom:12px;">// BADGES EARNED</div>
+      <div class="badges-grid" id="badges-earned"></div>
+    </div>
+
+    <div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--lavender);letter-spacing:2px;margin-bottom:16px;">// QUESTION BREAKDOWN</div>
+      <div class="q-results" id="q-results-list"></div>
+    </div>
+
+    <div style="display:flex;gap:16px;justify-content:center;">
+      <button class="btn btn-primary" onclick="goToLobby()">RETURN TO LOBBY</button>
+      <button class="btn" onclick="goToSetup()">NEW CANDIDATE</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
