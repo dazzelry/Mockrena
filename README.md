@@ -1,5 +1,5 @@
 # Mockrena
-**AI-powered mock interview platform combining LLMs, speech recognition, and computer vision.**
+**Gamified AI-powered mock interview platform combining LLMs, speech recognition, and computer vision.**
 
 ## Overview
 
